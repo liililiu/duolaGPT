@@ -1,17 +1,17 @@
 package message
 
 import (
+	"duolaGPT/conf"
+	"duolaGPT/gptMessage"
 	"duolaGPT/utils"
+	"duolaGPT/variables"
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/sashabaranov/go-openai"
-
-	"duolaGPT/conf"
-	"duolaGPT/gptMessage"
-	"duolaGPT/variables"
 	"log"
 	"strings"
 	"sync"
+	"time"
 )
 
 var mu = &sync.Mutex{}
@@ -73,6 +73,26 @@ func HandleMessage(userManager *UserManager, config conf.Config, bot *tgbotapi.B
 		return // 如果用户没有访问权限，则直接返回。
 	}
 
+	currentTime := time.Now()
+	currentDateString := currentTime.Format("2006-01-02")
+	// 获取当前是周几
+	currentWeekday := currentTime.Weekday()
+
+	// 创建一个星期几的中文对应表
+	weekdaysChinese := map[time.Weekday]string{
+		time.Sunday:    "星期天",
+		time.Monday:    "星期一",
+		time.Tuesday:   "星期二",
+		time.Wednesday: "星期三",
+		time.Thursday:  "星期四",
+		time.Friday:    "星期五",
+		time.Saturday:  "星期六",
+	}
+
+	// 获取当前星期几的中文表示
+	currentWeekdayChinese := weekdaysChinese[currentWeekday]
+	language := "Chinese"
+
 	mu.Lock()
 
 	user := variables.UserSettingsMap[update.Message.From.ID+update.Message.Chat.ID]
@@ -91,7 +111,7 @@ func HandleMessage(userManager *UserManager, config conf.Config, bot *tgbotapi.B
 		mu.Lock()
 		variables.UserSettingsMap[update.Message.From.ID+update.Message.Chat.ID] = variables.User{
 			Model:        model,
-			SystemPrompt: update.Message.Text,
+			SystemPrompt: update.Message.Text + fmt.Sprintf(" Respond conversationally in %s. Knowledge cutoff: 2023-04. 当前时间:  %s ", language, currentDateString+" "+currentWeekdayChinese),
 			State:        variables.StateDefault,
 		}
 		mu.Unlock()
@@ -100,7 +120,54 @@ func HandleMessage(userManager *UserManager, config conf.Config, bot *tgbotapi.B
 		return
 	}
 	var err error
-	generatedTextStream, err := gptMessage.GenerateTextStreamWithGPT(client, update.Message.Text, update.Message.From.ID+update.Message.Chat.ID, model)
+	stringText := update.Message.Text
+
+	if utils.CheckForKeywords(update.Message.Text, config) {
+
+		searchQuery := update.Message.Text
+
+		// 用于存储累积的文本
+		var stringTextBuilder strings.Builder
+
+		// 定义搜索的起始位置
+		startIndex := 1
+
+		// 循环直到文本长度达到16000个字符或者没有更多的搜索结果,锁定promptTokens
+		for stringTextBuilder.Len() < 10000 {
+			searchResult, err := utils.PerformGoogleSearch(config.GoogleSearchKey, config.GoogleSearchEngineID, searchQuery, startIndex, 10, "lang_zh-CN", config.ProxyUrl)
+			if err != nil {
+				log.Printf("Failed to search from google: %v", err)
+				break
+			}
+			// 如果没有搜索结果，跳出循环
+			if len(searchResult.Items) == 0 {
+				break
+			}
+
+			// 提取搜索结果的摘要
+			stringTextGoogle := utils.ExtractSummariesFromSearchResult(searchResult, config.ProxyUrl)
+
+			// 追加到累积的文本中
+			for _, summary := range stringTextGoogle {
+				stringTextBuilder.WriteString(summary + " ")
+				if stringTextBuilder.Len() >= 10000 {
+					break
+				}
+			}
+			// 更新搜索的起始位置以获取下一批结果
+			startIndex += 1
+			// 可以根据需要添加延迟以避免过快的请求导致被搜索引擎限制
+			// time.Sleep(time.Second * 1)
+		}
+		// 获取累积的文本并截取前10000个字符（如果需要）
+		stringText = stringTextBuilder.String()
+		if len(stringText) > 10000 {
+			stringText = stringText[:10000]
+		}
+
+	}
+
+	generatedTextStream, err := gptMessage.GenerateTextStreamWithGPT(client, stringText, update.Message.From.ID+update.Message.Chat.ID, model)
 	if err != nil {
 		log.Printf("Failed to generate text stream with GPT: %v", err)
 		return
@@ -113,7 +180,6 @@ func HandleMessage(userManager *UserManager, config conf.Config, bot *tgbotapi.B
 	var buffer strings.Builder
 
 	for generatedText := range generatedTextStream {
-
 		if HasGetChangeID == false {
 			msg := tgbotapi.NewMessage(update.Message.Chat.ID, "waiting...")
 			msg.ReplyToMessageID = update.Message.MessageID
@@ -269,6 +335,26 @@ func HandleImg(userManager *UserManager, config conf.Config, bot *tgbotapi.BotAP
 }
 
 func HandleCommand(bot *tgbotapi.BotAPI, update tgbotapi.Update, client *openai.Client) {
+
+	currentTime := time.Now()
+	currentDateString := currentTime.Format("2006-01-02")
+	// 获取当前是周几
+	currentWeekday := currentTime.Weekday()
+
+	// 创建一个星期几的中文对应表
+	weekdaysChinese := map[time.Weekday]string{
+		time.Sunday:    "星期天",
+		time.Monday:    "星期一",
+		time.Tuesday:   "星期二",
+		time.Wednesday: "星期三",
+		time.Thursday:  "星期四",
+		time.Friday:    "星期五",
+		time.Saturday:  "星期六",
+	}
+
+	// 获取当前星期几的中文表示
+	currentWeekdayChinese := weekdaysChinese[currentWeekday]
+	language := "Chinese"
 	command := update.Message.Command()
 	commandArg := update.Message.CommandArguments()
 	// 获取用户ID
@@ -284,15 +370,16 @@ func HandleCommand(bot *tgbotapi.BotAPI, update tgbotapi.Update, client *openai.
 	switch command {
 	case "start":
 		mu.Lock()
+		systemPrompt := variables.DefaultSystemPrompt + fmt.Sprintf(" Respond conversationally in %s. Knowledge cutoff: 2023-04. 当前时间: %s ", language, currentDateString+" "+currentWeekdayChinese)
 		variables.ConversationHistory[update.Message.From.ID+update.Message.Chat.ID] = []openai.ChatCompletionMessage{
 			{
 				Role:    "system",
-				Content: variables.DefaultSystemPrompt,
+				Content: systemPrompt,
 			},
 		}
 		variables.UserSettingsMap[update.Message.From.ID+update.Message.Chat.ID] = variables.User{
 			Model:        variables.DefaultModel,
-			SystemPrompt: variables.DefaultSystemPrompt,
+			SystemPrompt: systemPrompt,
 		}
 		mu.Unlock()
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "欢迎来到哆啦助手!\n"+
@@ -342,8 +429,9 @@ func HandleCommand(bot *tgbotapi.BotAPI, update tgbotapi.Update, client *openai.
 	case "stop":
 		mu.Lock()
 		user := variables.UserSettingsMap[update.Message.From.ID+update.Message.Chat.ID]
-		(*user.CurrentContext)()
-		user.CurrentContext = nil
+		if user.CurrentContext != nil {
+			(*user.CurrentContext)()
+		}
 
 		gptMessage.CompleteResponse(update.Message.From.ID + update.Message.Chat.ID)
 		mu.Unlock()
@@ -363,7 +451,7 @@ func HandleCommand(bot *tgbotapi.BotAPI, update tgbotapi.Update, client *openai.
 		mu.Lock()
 		variables.UserSettingsMap[update.Message.From.ID+update.Message.Chat.ID] = variables.User{
 			Model:        variables.UserSettingsMap[update.Message.From.ID+update.Message.Chat.ID].Model,
-			SystemPrompt: commandArg,
+			SystemPrompt: commandArg + fmt.Sprintf("Respond conversationally in %s. Knowledge cutoff: 2023-04. Current date:  %s ", language, currentDateString),
 		}
 		variables.ConversationHistory[update.Message.From.ID+update.Message.Chat.ID] = []openai.ChatCompletionMessage{
 			{

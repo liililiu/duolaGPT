@@ -140,7 +140,6 @@ func GenerateImgWithGPT(client *openai.Client, inputText string, chatID int64, m
 func CompleteResponse(chatID int64) {
 	mu.Lock()
 	user := variables.UserSettingsMap[chatID]
-	user.CurrentContext = nil
 	generatedText := user.CurrentMessageBuffer
 	user.CurrentMessageBuffer = ""
 	variables.UserSettingsMap[chatID] = user

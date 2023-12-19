@@ -6,13 +6,15 @@ import (
 )
 
 type Config struct {
-	ProxyUrl      string   `yaml:"proxy_url"`
-	BaseUrl       string   `yaml:"base_url"`
-	TelegramToken string   `yaml:"telegram_token"`
-	OpenAIKey     string   `yaml:"openai_api_key"`
-	Temperature   float32  `yaml:"temperature"`
-	AllowedUsers  []string `yaml:"allowed_telegram_usernames"`
-	FreeChatCount int      `yaml:"free_chat_count"`
+	ProxyUrl             string   `yaml:"proxy_url"`
+	BaseUrl              string   `yaml:"base_url"`
+	TelegramToken        string   `yaml:"telegram_token"`
+	OpenAIKey            string   `yaml:"openai_api_key"`
+	Temperature          float32  `yaml:"temperature"`
+	AllowedUsers         []string `yaml:"allowed_telegram_usernames"`
+	FreeChatCount        int      `yaml:"free_chat_count"`
+	GoogleSearchKey      string   `yaml:"google_search_key"`
+	GoogleSearchEngineID string   `yaml:"google_search_engine_id"`
 }
 
 func ReadConfig() (Config, error) {

@@ -1,0 +1,12 @@
+#proxy_url: "http://127.0.0.1:10809"
+base_url: "https://api.openai.com/v1"
+openai_api_key: "sk-key"
+temperature: 0.2
+telegram_token: "tg-token"
+allowed_telegram_usernames: ["tom","tony","lisa"]
+free_chat_count: 10
+google_search_key: "your-google_search_key"
+google_search_engine_id: "your-google_search_engine_id"
+
+
+

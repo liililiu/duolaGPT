@@ -10,11 +10,11 @@ var UserSettingsMap = make(map[int64]User)
 
 const (
 	GPT4Model                   = "gpt-4-1106-preview"
-	GPT35TurboModel             = "gpt-3.5-turbo-1106"
+	GPT35TurboModel             = "gpt-3.5-turbo-16k"
 	GPTPICModel                 = "dall-e-3"
 	StateDefault                = ""
 	StateWaitingForSystemPrompt = "waiting_for_system_prompt"
-	DefaultSystemPrompt         = "You are a helpful assistant."
+	DefaultSystemPrompt         = "You are ChatGPT, a large language model trained by OpenAI."
 	DefaultModel                = GPT35TurboModel
 )
 
@@ -25,4 +25,9 @@ type User struct {
 	CurrentContext       *context.CancelFunc
 	CurrentMessageBuffer string
 	MessageCount         int
+}
+
+var TriggerKeywords = []string{
+	"搜索", "?", "??", "？", "？？",
+	// 更多关键字...
 }
