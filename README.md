@@ -14,6 +14,7 @@
 - **代理支持**: 可配置代理以适应网络限制。
 - **白名单模式**: 支持白名单模式，仅限授权用户使用。
 - **markdown渲染输出**: 支持Markdown渲染，确保代码和文档的友好展示。
+- **联网搜索**: 支持实时联网搜索能力，支持联网上下分对话分析。
 
 ## 配置文件说明
 
@@ -25,6 +26,9 @@ temperature: 0.2 # 对话温度设置
 telegram_token: "tg-yourtoken" # 你的Telegram机器人Token
 allowed_telegram_usernames: ["tom","nick","tony"] # 允许使用机器人的Telegram用户名列表
 free_chat_count: 10 # 免费对话次数限制
+google_search_key: "your-google_search_key" # 你的GoogleKey
+google_search_engine_id: "your-google_search_engine_id" # 你的GoogleSearchEngineID
+
 ```
 
 ## 安装指南
@@ -51,8 +55,19 @@ free_chat_count: 10 # 免费对话次数限制
 - `/stop` - 中止GPT模型的输出。
 - `/prompt` - 设置或更新会话的Prompt提示词。
 
+## 示例图片
 
+![](images/snipaste_20231219_192912.png)
+
+![](images/snipaste_20231219_192949.png)
+
+![](images/snipaste_20231219_192957.png)
+
+![](images/snipaste_20231219_195242.png)
 ## 试用机器人
 
 立即体验哆啦助手gpt：[哆啦助手gpt](https://t.me/duolazhushou_bot)
 
+## Telegram交流群
+
+欢迎进群反馈Bug和体验：[duolaGPT交流群](https://t.me/+wBOIHb8aeN43MjFl)
